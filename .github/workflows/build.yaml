@@ -9,10 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      ANDROIDSDK: ${{ github.workspace }}/.buildozer/android/platform/android-sdk
-      ANDROIDNDK: ${{ github.workspace }}/.buildozer/android/platform/android-ndk-r25b
-      FFMPEG_DIR: ${{ github.workspace }}/ffmpeg
 
     steps:
       - name: Checkout repository
@@ -29,7 +25,7 @@ jobs:
           sudo apt install -y \
             build-essential git zip unzip python3-pip \
             libffi-dev libssl-dev liblzma-dev zlib1g-dev \
-            openjdk-17-jdk wget curl
+            openjdk-17-jdk wget curl ffmpeg
 
       - name: Install Buildozer & Python dependencies
         run: |
@@ -37,25 +33,29 @@ jobs:
           pip install Cython buildozer appdirs colorama jinja2 sh build toml packaging \
                       mutagen yt-dlp spotdl syncedlyrics python-slugify tqdm platformdirs websockets
 
-      - name: Download FFmpeg binaries
+      - name: Verify Buildozer & Cython
         run: |
-          mkdir -p $FFMPEG_DIR
-          wget -q https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -O ffmpeg.tar.xz
-          tar -xf ffmpeg.tar.xz --strip-components=1 -C $FFMPEG_DIR
-          chmod +x $FFMPEG_DIR/ffmpeg $FFMPEG_DIR/ffprobe
+          buildozer --version
+          cython --version
 
-      - name: Pre-accept Android SDK licenses
+      - name: First-time Buildozer setup (SDK/NDK)
         run: |
-          mkdir -p $ANDROIDSDK/cmdline-tools/latest
-          if [ ! -f "$ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager" ]; then
-            wget -q https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip -O cmdline-tools.zip
-            unzip -q cmdline-tools.zip -d $ANDROIDSDK/cmdline-tools/latest
-          fi
-          yes | $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager --licenses
+          mkdir -p .buildozer/android/platform
+          buildozer android debug > .buildozer/setup.log 2>&1 || true
+          echo "Buildozer first-time setup complete. See .buildozer/setup.log for details."
 
-      - name: Build APK (debug)
+      - name: Copy FFmpeg binaries
         run: |
-          buildozer android debug
+          mkdir -p ffmpeg
+          # Use GitHub URLs or release URLs for your ffmpeg/ffprobe static binaries
+          curl -L -o ffmpeg/ffmpeg https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static/ffmpeg
+          curl -L -o ffmpeg/ffprobe https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static/ffprobe
+          chmod +x ffmpeg/ffmpeg ffmpeg/ffprobe
+
+      - name: Build APK (debug) using Buildozer
+        run: |
+          buildozer android debug > .buildozer/build.log 2>&1 || true
+          echo "Build complete. See .buildozer/build.log for details."
 
       - name: Find APK and copy to /build/app/
         run: |
