@@ -27,21 +27,24 @@ jobs:
             libffi-dev libssl-dev liblzma-dev zlib1g-dev \
             openjdk-17-jdk wget curl unzip
 
-      - name: Install Buildozer & Python dependencies system-wide
+      - name: Install Buildozer & Python dependencies globally
         run: |
           pip install --upgrade pip setuptools wheel
-          pip install Cython buildozer appdirs colorama jinja2 sh build toml packaging mutagen yt-dlp spotdl syncedlyrics python-slugify tqdm platformdirs websockets
+          pip install Cython buildozer appdirs colorama jinja2 sh build toml packaging \
+                      mutagen yt-dlp spotdl syncedlyrics python-slugify tqdm platformdirs websockets
 
       - name: Verify Buildozer & Cython
         run: |
           buildozer --version
           cython --version
 
-      - name: Ensure first-time Android setup (SDK/NDK download)
-        run: buildozer android debug || true
+      - name: First-time Android SDK/NDK setup (stream logs)
+        run: |
+          buildozer -v --color=always android debug 2>&1 | tee buildozer_setup.log || true
 
-      - name: Build APK (debug)
-        run: buildozer android debug
+      - name: Build APK (debug) with real-time logs
+        run: |
+          buildozer -v --color=always android debug 2>&1 | tee buildozer_build.log
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

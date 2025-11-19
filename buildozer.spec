@@ -15,18 +15,16 @@ android.add_src = ffmpeg
 
 # Permissions for SD-card writing
 android.permissions = INTERNET,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,MANAGE_EXTERNAL_STORAGE
-android.use_storage_framework = False
+android.use_storage_framework = False # Direct access to /sdcard
 
+# Android platform
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
 android.accept_sdk_license = True
+android.archs = arm64-v8a,armeabi-v7a
 
 fullscreen = 0
 orientation = portrait
 log_level = 2
 android.enable_androidx = True
-
-[buildozer]
-log_level = 2
-warn_on_root = 0
