@@ -25,7 +25,7 @@ jobs:
           sudo apt install -y \
             build-essential git zip unzip python3-pip \
             libffi-dev libssl-dev liblzma-dev zlib1g-dev \
-            openjdk-17-jdk wget curl unzip
+            openjdk-17-jdk wget curl unzip ffmpeg
 
       - name: Install Buildozer & Python dependencies globally
         run: |
@@ -38,13 +38,20 @@ jobs:
           buildozer --version
           cython --version
 
-      - name: First-time Android SDK/NDK setup (stream logs)
+      - name: Fetch FFmpeg for APK
         run: |
-          buildozer -v --color=always android debug 2>&1 | tee buildozer_setup.log || true
+          mkdir -p ffmpeg
+          curl -L -o ffmpeg/ffmpeg https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz
+          curl -L -o ffmpeg/ffprobe https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz
+          chmod +x ffmpeg/ffmpeg ffmpeg/ffprobe
 
-      - name: Build APK (debug) with real-time logs
+      - name: First-time Android SDK/NDK setup with live logs
         run: |
-          buildozer -v --color=always android debug 2>&1 | tee buildozer_build.log
+          python -u -m buildozer -v android debug 2>&1 | tee buildozer_setup.log || true
+
+      - name: Build APK (debug) with live logs
+        run: |
+          python -u -m buildozer -v android debug 2>&1 | tee buildozer_build.log
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
