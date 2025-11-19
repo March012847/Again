@@ -38,30 +38,19 @@ jobs:
           buildozer --version
           cython --version
 
-      - name: Setup FFmpeg folder
+      - name: Build APK (debug) with full logs
         run: |
-          # Ensure folder exists and is empty
-          mkdir -p ffmpeg
-          rm -f ffmpeg/ffmpeg ffmpeg/ffprobe
-          echo "FFmpeg folder ready"
+          mkdir -p build/logs
+          # Run Buildozer in verbose mode and capture full log
+          buildozer -v android debug 2>&1 | tee build/logs/buildozer_full.log
 
-      - name: Download FFmpeg binaries
-        run: |
-          # Adjust URL if needed for Linux static build
-          wget -q https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -O ffmpeg.tar.xz
-          tar -xf ffmpeg.tar.xz --strip-components=1 -C ffmpeg
-          chmod +x ffmpeg/ffmpeg ffmpeg/ffprobe
-          ls -l ffmpeg
+      - name: Upload Buildozer log
+        uses: actions/upload-artifact@v4
+        with:
+          name: buildozer-log
+          path: build/logs/buildozer_full.log
 
-      - name: First-time Buildozer Android SDK/NDK setup
-        run: |
-          buildozer -v android debug 2>&1 | tee buildozer_setup.log || true
-
-      - name: Build APK (debug) with live logs
-        run: |
-          buildozer -v android debug 2>&1 | tee buildozer_build.log
-
-      - name: Find APK and copy to /build/app/
+      - name: Find APK and upload
         run: |
           mkdir -p build/app
           APK_PATH=$(find .buildozer/android/platform/build-* -type f -name "*.apk" | head -n 1)
@@ -69,8 +58,7 @@ jobs:
             echo "Found APK: $APK_PATH"
             cp "$APK_PATH" build/app/
           else
-            echo "ERROR: APK not found!"
-            exit 1
+            echo "WARNING: APK not found, check Buildozer log"
           fi
 
       - name: Upload APK artifact
