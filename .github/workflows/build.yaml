@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      PYTHONUNBUFFERED: 1  # Ensures real-time logging
+      PYTHONUNBUFFERED: 1  # Ensures real-time logs
 
     steps:
     # 1️⃣ Checkout repository
@@ -28,16 +28,21 @@ jobs:
     - name: Download Android ffmpeg
       run: |
         mkdir -p libs/ffmpeg
-        # Replace with proper ARM Android binaries if needed
+        # Prebuilt ffmpeg for Android; replace with proper ARM binaries if needed
         wget -O libs/ffmpeg/ffmpeg https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
         chmod +x libs/ffmpeg/ffmpeg
 
-    # 4️⃣ Build APK with Buildozer
+    # 4️⃣ Accept Android SDK licenses
+    - name: Accept Android SDK licenses
+      run: |
+        yes | ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager --licenses
+
+    # 5️⃣ Build APK with Buildozer
     - name: Build APK
       run: |
         buildozer -v android debug
 
-    # 5️⃣ Upload APK artifact
+    # 6️⃣ Upload APK artifact
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
