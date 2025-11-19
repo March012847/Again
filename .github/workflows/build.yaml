@@ -30,8 +30,7 @@ jobs:
             libssl-dev \
             liblzma-dev \
             zlib1g-dev \
-            openjdk-17-jdk \
-            libncurses5
+            openjdk-17-jdk
 
       - name: Create Python venv
         run: |
