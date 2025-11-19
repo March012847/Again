@@ -33,24 +33,27 @@ jobs:
           pip install Cython buildozer appdirs colorama jinja2 sh build toml packaging \
                       mutagen yt-dlp spotdl syncedlyrics python-slugify tqdm platformdirs websockets
 
-      - name: Download ARM Android FFmpeg/FFprobe
-        run: |
-          mkdir -p ffmpeg
-          cd ffmpeg
-          # Example ARM Android FFmpeg binaries from trusted source
-          wget -q https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-11-12-12-00/ffmpeg-release-android-arm64-v8a.zip -O ffmpeg.zip
-          unzip -o ffmpeg.zip -d .
-          mv ffmpeg-release-android-arm64-v8a/ffmpeg ffmpeg
-          mv ffmpeg-release-android-arm64-v8a/ffprobe ffprobe
-          chmod +x ffmpeg ffprobe
-          cd ..
-
       - name: Verify Buildozer & Cython
         run: |
           buildozer --version
           cython --version
 
-      - name: First-time Android SDK/NDK setup
+      - name: Setup FFmpeg folder
+        run: |
+          # Ensure folder exists and is empty
+          mkdir -p ffmpeg
+          rm -f ffmpeg/ffmpeg ffmpeg/ffprobe
+          echo "FFmpeg folder ready"
+
+      - name: Download FFmpeg binaries
+        run: |
+          # Adjust URL if needed for Linux static build
+          wget -q https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -O ffmpeg.tar.xz
+          tar -xf ffmpeg.tar.xz --strip-components=1 -C ffmpeg
+          chmod +x ffmpeg/ffmpeg ffmpeg/ffprobe
+          ls -l ffmpeg
+
+      - name: First-time Buildozer Android SDK/NDK setup
         run: |
           buildozer -v android debug 2>&1 | tee buildozer_setup.log || true
 
