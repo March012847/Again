@@ -13,8 +13,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # ensures full history for Buildozer
 
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
@@ -29,35 +27,39 @@ jobs:
             libffi-dev libssl-dev liblzma-dev zlib1g-dev \
             openjdk-17-jdk wget curl ffmpeg
 
-      - name: Install Buildozer & Python dependencies globally
+      - name: Install Buildozer & Python dependencies
         run: |
           pip install --upgrade pip setuptools wheel
-          pip install --upgrade \
-            Cython buildozer appdirs colorama jinja2 sh build toml packaging \
-            mutagen yt-dlp spotdl syncedlyrics python-slugify tqdm platformdirs websockets
+          pip install Cython buildozer appdirs colorama jinja2 sh build toml packaging \
+                      mutagen yt-dlp spotdl syncedlyrics python-slugify tqdm platformdirs websockets
 
       - name: Verify Buildozer & Cython
         run: |
           buildozer --version
           cython --version
 
-      - name: Fetch FFmpeg for APK
+      - name: First-time Android SDK/NDK setup
         run: |
-          mkdir -p ffmpeg
-          curl -L -o ffmpeg/ffmpeg https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz
-          curl -L -o ffmpeg/ffprobe https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz
-          chmod +x ffmpeg/ffmpeg ffmpeg/ffprobe
+          buildozer -v android debug 2>&1 | tee buildozer_setup.log || true
 
-      - name: First-time Android SDK/NDK setup (real-time logs)
+      - name: Build APK (debug) with live logs
         run: |
-          python -u -m buildozer android debug 2>&1 | tee buildozer_setup.log || true
+          buildozer -v android debug 2>&1 | tee buildozer_build.log
 
-      - name: Build APK (debug) with real-time logs
+      - name: Find APK and copy to /build/app/
         run: |
-          python -u -m buildozer android debug 2>&1 | tee buildozer_build.log
+          mkdir -p build/app
+          APK_PATH=$(find .buildozer/android/platform/build-* -type f -name "*.apk" | head -n 1)
+          if [ -f "$APK_PATH" ]; then
+            echo "Found APK: $APK_PATH"
+            cp "$APK_PATH" build/app/
+          else
+            echo "ERROR: APK not found!"
+            exit 1
+          fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: bin/*.apk
+          path: build/app/*.apk
