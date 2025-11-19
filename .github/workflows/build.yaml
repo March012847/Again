@@ -10,32 +10,36 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      PYTHONUNBUFFERED: 1
+      PYTHONUNBUFFERED: 1  # Ensures real-time logging
 
     steps:
-    - name: Checkout repository
+    # 1️⃣ Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v4
 
+    # 2️⃣ Install system dependencies and Python packages
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y git python3-pip python3-setuptools openjdk-8-jdk unzip zip wget
+        sudo apt-get install -y git python3-pip python3-setuptools openjdk-8-jdk unzip zip wget curl
         pip install --upgrade buildozer cython
 
+    # 3️⃣ Download Android ffmpeg binary
     - name: Download Android ffmpeg
       run: |
         mkdir -p libs/ffmpeg
-        # Prebuilt ffmpeg for Android; replace with proper ARM binaries
+        # Replace with proper ARM Android binaries if needed
         wget -O libs/ffmpeg/ffmpeg https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
         chmod +x libs/ffmpeg/ffmpeg
 
+    # 4️⃣ Build APK with Buildozer
     - name: Build APK
       run: |
-        # Show full output and errors in real-time
         buildozer -v android debug
 
-    - name: Upload APK artifact
-      uses: actions/upload-artifact@v3
+    # 5️⃣ Upload APK artifact
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
       with:
         name: spotdl-apk
         path: bin/*.apk
