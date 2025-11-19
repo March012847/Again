@@ -1,27 +1,36 @@
 import os
 import threading
 import subprocess
+
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.label import Label
-from kivy.core.window import Window
 
-from syncedlyrics import search_lyrics
 from yt_dlp import YoutubeDL
+from syncedlyrics import search_lyrics
 
 
-ROOT = os.getcwd()
-DOWNLOAD_DIR = os.path.join(ROOT, "downloads")
-OSPY = "python3"  # Android python runtime alias injected by Buildozer
+# ========== PATH SETUP ==========
 
+ROOT = os.getcwd()  # app internal data folder
+
+# Save files to public Android folder
+DOWNLOAD_DIR = "/sdcard/DownloadedMedia"
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
+# Path to ffmpeg binaries you packaged
 FFMPEG = os.path.join(ROOT, "ffmpeg", "ffmpeg")
 FFPROBE = os.path.join(ROOT, "ffmpeg", "ffprobe")
 
+# Buildozer bundles Python runtime
+OSPY = "python3"
+
+
+# ========== UI CLASS ==========
 
 class DownloaderUI(BoxLayout):
-
     def __init__(self, **kwargs):
         super().__init__(orientation="vertical", padding=10, spacing=10, **kwargs)
 
@@ -29,21 +38,21 @@ class DownloaderUI(BoxLayout):
             hint_text="Paste Spotify or YouTube URL",
             multiline=False,
             size_hint_y=None,
-            height=45
+            height=50,
         )
         self.add_widget(self.url_input)
 
         self.log_label = Label(
             text="Ready.",
             size_hint_y=None,
-            height=200
+            height=250,
         )
         self.add_widget(self.log_label)
 
         dl_btn = Button(
             text="Download",
             size_hint_y=None,
-            height=50
+            height=55,
         )
         dl_btn.bind(on_press=self.start_download)
         self.add_widget(dl_btn)
@@ -54,53 +63,56 @@ class DownloaderUI(BoxLayout):
 
     def start_download(self, *args):
         url = self.url_input.text.strip()
+
         if not url:
-            self.log("No URL provided.")
+            self.log("Please paste a URL first.")
             return
 
         thread = threading.Thread(target=self.download_handler, args=(url,))
         thread.start()
 
-    # MAIN LOGIC
+    # ========== MAIN DOWNLOAD HANDLER ==========
+
     def download_handler(self, url):
-
-        os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-
         if "spotify.com" in url:
-            self.log("Detected Spotify URL → Using SpotDL...")
+            self.log("Spotify URL detected → using SpotDL…")
             mp3_path = self.download_spotify(url)
         else:
-            self.log("Detected YouTube URL → Using yt-dlp...")
+            self.log("YouTube URL detected → using yt-dlp…")
             mp3_path = self.download_youtube(url)
 
         if not mp3_path:
             self.log("Download failed.")
             return
 
-        self.log("Fetching synced lyrics...")
+        # Try fetching synced lyrics
         name = os.path.splitext(os.path.basename(mp3_path))[0]
+        self.log("Fetching synced lyrics…")
 
         try:
             lrc = search_lyrics(name)
             if lrc:
-                with open(os.path.join(DOWNLOAD_DIR, name + ".lrc"), "w", encoding="utf-8") as f:
+                lrc_path = os.path.join(DOWNLOAD_DIR, f"{name}.lrc")
+                with open(lrc_path, "w", encoding="utf-8") as f:
                     f.write(lrc)
-                self.log("LRC saved.")
+                self.log("Lyrics saved.")
             else:
                 self.log("No synced lyrics found.")
         except Exception as e:
-            self.log(f"LRC error: {e}")
+            self.log(f"Error fetching lyrics: {e}")
 
-        self.log("Done.")
+        self.log("All done.")
 
-    # YOUTUBE METHOD
+    # ========== YOUTUBE DOWNLOAD ==========
+
     def download_youtube(self, url):
-        self.log("Downloading via yt-dlp...")
+        self.log("Downloading via yt-dlp…")
 
-        pattern = os.path.join(DOWNLOAD_DIR, "%(title)s.%(ext)s")
+        outtmpl = os.path.join(DOWNLOAD_DIR, "%(title)s.%(ext)s")
+
         opts = {
             "format": "bestaudio/best",
-            "outtmpl": pattern,
+            "outtmpl": outtmpl,
             "postprocessors": [
                 {
                     "key": "FFmpegExtractAudio",
@@ -108,7 +120,7 @@ class DownloaderUI(BoxLayout):
                     "preferredquality": "192",
                 }
             ],
-            "ffmpeg_location": FFMPEG
+            "ffmpeg_location": FFMPEG,
         }
 
         try:
@@ -120,13 +132,13 @@ class DownloaderUI(BoxLayout):
             self.log(f"yt-dlp ERROR: {e}")
             return None
 
-    # SPOTDL METHOD
-    def download_spotify(self, url):
-        self.log("Downloading via SpotDL...")
+    # ========== SPOTDL DOWNLOAD ==========
 
-        # SpotDL output will go to the working directory, so set CWD
+    def download_spotify(self, url):
+        self.log("Downloading via SpotDL…")
+
         cmd = [
-            OSPY,      # Buildozer's python runtime inside APK
+            OSPY,
             "-m", "spotdl",
             "download",
             "--ffmpeg", FFMPEG,
@@ -140,8 +152,9 @@ class DownloaderUI(BoxLayout):
                 cwd=ROOT,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True
+                text=True,
             )
+
             for line in proc.stdout:
                 self.log(line.strip())
 
@@ -150,7 +163,7 @@ class DownloaderUI(BoxLayout):
             self.log(f"SpotDL ERROR: {e}")
             return None
 
-        # Find MP3 result
+        # Find newly downloaded MP3
         try:
             for f in os.listdir(DOWNLOAD_DIR):
                 if f.endswith(".mp3"):
@@ -160,6 +173,8 @@ class DownloaderUI(BoxLayout):
 
         return None
 
+
+# ========== APP WRAPPER ==========
 
 class SpotDLApp(App):
     def build(self):

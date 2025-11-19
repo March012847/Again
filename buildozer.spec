@@ -8,33 +8,37 @@ source.include_exts = py,kv,png,jpg,txt,mp3,json,xml,bin,sh,so
 
 version = 1.0
 
-# Main requirements:
+# Main Python requirements for SpotDL behavior
 requirements = python3,kivy,requests,mutagen,yt-dlp,syncedlyrics,spotdl,python-slugify,colorama,tqdm,platformdirs,websockets
 
-# Include ffmpeg binaries
+# Copy ffmpeg binaries
 android.copy_files = ffmpeg/ffmpeg:ffmpeg, ffmpeg/ffprobe:ffprobe
 android.add_src = ffmpeg
 
-# Permissions for downloads + internet
-android.permissions = INTERNET,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,ACCESS_NETWORK_STATE
+# EXTERNAL STORAGE WRITE SUPPORT
+android.permissions = WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,MANAGE_EXTERNAL_STORAGE
 
-# Make ffmpeg runnable
-android.allow_backup = 1
-android.archive = False
+# Disable Android Storage Framework
+android.use_storage_framework = False
 
-# Kivy / SDL2 / Android API setup
+# Allow legacy external storage write
+android.extra_manifest_xml = <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+android.presplash_color = "#000000"
+
+# Required for accessing /sdcard on Android 11+
+android.extra_args = --preserve-file-permissions --use-legacy-storage
+
+# API targets
 android.api = 33
 android.minapi = 21
 android.sdk = 30
 android.ndk = 25b
 android.accept_sdk_license = True
 
-fullscreen = 0
 orientation = portrait
+fullscreen = 0
 log_level = 2
-
 android.enable_androidx = True
-android.use_storage_framework = True
 
 [buildozer]
 log_level = 2
