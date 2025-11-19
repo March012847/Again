@@ -33,6 +33,18 @@ jobs:
           pip install Cython buildozer appdirs colorama jinja2 sh build toml packaging \
                       mutagen yt-dlp spotdl syncedlyrics python-slugify tqdm platformdirs websockets
 
+      - name: Download ARM Android FFmpeg/FFprobe
+        run: |
+          mkdir -p ffmpeg
+          cd ffmpeg
+          # Example ARM Android FFmpeg binaries from trusted source
+          wget -q https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-11-12-12-00/ffmpeg-release-android-arm64-v8a.zip -O ffmpeg.zip
+          unzip -o ffmpeg.zip -d .
+          mv ffmpeg-release-android-arm64-v8a/ffmpeg ffmpeg
+          mv ffmpeg-release-android-arm64-v8a/ffprobe ffprobe
+          chmod +x ffmpeg ffprobe
+          cd ..
+
       - name: Verify Buildozer & Cython
         run: |
           buildozer --version
