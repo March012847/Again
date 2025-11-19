@@ -9,6 +9,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROIDSDK: ${{ github.workspace }}/.buildozer/android/platform/android-sdk
+      ANDROIDNDK: ${{ github.workspace }}/.buildozer/android/platform/android-ndk-r25b
+      FFMPEG_DIR: ${{ github.workspace }}/ffmpeg
 
     steps:
       - name: Checkout repository
@@ -38,19 +42,21 @@ jobs:
           buildozer --version
           cython --version
 
-      - name: Build APK (debug) with full logs
+      - name: Pre-accept Android SDK licenses
         run: |
-          mkdir -p build/logs
-          # Run Buildozer in verbose mode and capture full log
-          buildozer -v android debug 2>&1 | tee build/logs/buildozer_full.log
+          mkdir -p $ANDROIDSDK/cmdline-tools/latest
+          # Only extract if not already
+          if [ ! -f "$ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager" ]; then
+            wget -q https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip -O cmdline-tools.zip
+            unzip -q cmdline-tools.zip -d $ANDROIDSDK/cmdline-tools/latest
+          fi
+          yes | $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager --licenses
 
-      - name: Upload Buildozer log
-        uses: actions/upload-artifact@v4
-        with:
-          name: buildozer-log
-          path: build/logs/buildozer_full.log
+      - name: Build APK (debug)
+        run: |
+          buildozer android debug
 
-      - name: Find APK and upload
+      - name: Find APK and copy to /build/app/
         run: |
           mkdir -p build/app
           APK_PATH=$(find .buildozer/android/platform/build-* -type f -name "*.apk" | head -n 1)
@@ -58,7 +64,8 @@ jobs:
             echo "Found APK: $APK_PATH"
             cp "$APK_PATH" build/app/
           else
-            echo "WARNING: APK not found, check Buildozer log"
+            echo "ERROR: APK not found!"
+            exit 1
           fi
 
       - name: Upload APK artifact
