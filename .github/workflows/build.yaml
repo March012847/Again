@@ -11,7 +11,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
@@ -24,14 +25,17 @@ jobs:
           sudo apt install -y \
             build-essential git zip unzip python3-pip \
             libffi-dev libssl-dev liblzma-dev zlib1g-dev \
-            openjdk-17-jdk
+            openjdk-17-jdk wget curl unzip
 
-      - name: Install Buildozer and Cython system-wide
+      - name: Install Buildozer & Cython globally
         run: |
           pip install --upgrade pip setuptools
           pip install Cython buildozer
 
-      - name: First-time Buildozer Android setup
+      - name: Verify Cython
+        run: cython --version
+
+      - name: First-time Buildozer Android setup (downloads SDK/NDK)
         run: buildozer android debug || true
 
       - name: Build APK
