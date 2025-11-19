@@ -1,30 +1,47 @@
 [app]
+
+# Application info
 title = SpotDL Downloader
 package.name = spotdl_downloader
 package.domain = org.example
 source.dir = .
-source.include_exts = py,kv,png,jpg,txt,mp3,json,xml,bin,sh,so
+entrypoint = main.py
+version = 1.0.0
 
-version = 1.0
+# Include all source files
+source.include_exts = py,png,jpg,kv,txt
 
-requirements = python3,kivy,requests,mutagen,yt-dlp,syncedlyrics,spotdl,python-slugify,colorama,tqdm,platformdirs,websockets
+# Orientation
+orientation = portrait
 
-# Copy ffmpeg binaries into APK
-android.copy_files = ffmpeg/ffmpeg:ffmpeg, ffmpeg/ffprobe:ffprobe
-android.add_src = ffmpeg
-
-# Permissions for SD-card writing
-android.permissions = INTERNET,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,MANAGE_EXTERNAL_STORAGE
-android.use_storage_framework = False # Direct access to /sdcard
-
-# Android platform
+# Android SDK/NDK
 android.api = 33
 android.minapi = 21
+android.sdk = 33
 android.ndk = 25b
-android.accept_sdk_license = True
-android.archs = arm64-v8a,armeabi-v7a
+android.ndk_api = 21
 
+# Architectures
+android.arch = arm64-v8a, armeabi-v7a
+
+# Permissions
+android.permissions = INTERNET,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
+
+# Kivy + Python requirements
+requirements = python3,kivy,yt-dlp,spotdl,mutagen
+
+# Fullscreen
 fullscreen = 0
-orientation = portrait
+
+# Assets folder
+android.copy_assets = True
+
+# Logging
 log_level = 2
-android.enable_androidx = True
+
+# Use AndroidX
+android.use_androidx = True
+
+# Presplash/Icon (optional)
+presplash.filename = presplash.png
+icon.filename = icon.png

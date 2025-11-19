@@ -1,76 +1,41 @@
 name: Build Android APK
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      PYTHONUNBUFFERED: 1
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Setup Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.11
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git python3-pip python3-setuptools openjdk-8-jdk unzip zip wget
+        pip install --upgrade buildozer cython
 
-      - name: Install system dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y \
-            build-essential git zip unzip python3-pip \
-            libffi-dev libssl-dev liblzma-dev zlib1g-dev \
-            openjdk-17-jdk wget curl ffmpeg
+    - name: Download Android ffmpeg
+      run: |
+        mkdir -p libs/ffmpeg
+        # Prebuilt ffmpeg for Android; replace with proper ARM binaries
+        wget -O libs/ffmpeg/ffmpeg https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
+        chmod +x libs/ffmpeg/ffmpeg
 
-      - name: Install Buildozer & Python dependencies
-        run: |
-          pip install --upgrade pip setuptools wheel
-          pip install Cython buildozer appdirs colorama jinja2 sh build toml packaging \
-                      mutagen yt-dlp spotdl syncedlyrics python-slugify tqdm platformdirs websockets
+    - name: Build APK
+      run: |
+        # Show full output and errors in real-time
+        buildozer -v android debug
 
-      - name: Verify Buildozer & Cython
-        run: |
-          buildozer --version
-          cython --version
-
-      - name: First-time Buildozer setup (SDK/NDK)
-        run: |
-          mkdir -p .buildozer/android/platform
-          buildozer android debug > .buildozer/setup.log 2>&1 || true
-          echo "Buildozer first-time setup complete. See .buildozer/setup.log for details."
-
-      - name: Copy FFmpeg binaries
-        run: |
-          mkdir -p ffmpeg
-          # Use GitHub URLs or release URLs for your ffmpeg/ffprobe static binaries
-          curl -L -o ffmpeg/ffmpeg https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static/ffmpeg
-          curl -L -o ffmpeg/ffprobe https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static/ffprobe
-          chmod +x ffmpeg/ffmpeg ffmpeg/ffprobe
-
-      - name: Build APK (debug) using Buildozer
-        run: |
-          buildozer android debug > .buildozer/build.log 2>&1 || true
-          echo "Build complete. See .buildozer/build.log for details."
-
-      - name: Find APK and copy to /build/app/
-        run: |
-          mkdir -p build/app
-          APK_PATH=$(find .buildozer/android/platform/build-* -type f -name "*.apk" | head -n 1)
-          if [ -f "$APK_PATH" ]; then
-            echo "Found APK: $APK_PATH"
-            cp "$APK_PATH" build/app/
-          else
-            echo "ERROR: APK not found!"
-            exit 1
-          fi
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug
-          path: build/app/*.apk
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: spotdl-apk
+        path: bin/*.apk
