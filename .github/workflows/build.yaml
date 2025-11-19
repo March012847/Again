@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # ensures full history for Buildozer
 
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
@@ -25,13 +27,14 @@ jobs:
           sudo apt install -y \
             build-essential git zip unzip python3-pip \
             libffi-dev libssl-dev liblzma-dev zlib1g-dev \
-            openjdk-17-jdk wget curl unzip ffmpeg
+            openjdk-17-jdk wget curl ffmpeg
 
       - name: Install Buildozer & Python dependencies globally
         run: |
           pip install --upgrade pip setuptools wheel
-          pip install Cython buildozer appdirs colorama jinja2 sh build toml packaging \
-                      mutagen yt-dlp spotdl syncedlyrics python-slugify tqdm platformdirs websockets
+          pip install --upgrade \
+            Cython buildozer appdirs colorama jinja2 sh build toml packaging \
+            mutagen yt-dlp spotdl syncedlyrics python-slugify tqdm platformdirs websockets
 
       - name: Verify Buildozer & Cython
         run: |
@@ -45,13 +48,13 @@ jobs:
           curl -L -o ffmpeg/ffprobe https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz
           chmod +x ffmpeg/ffmpeg ffmpeg/ffprobe
 
-      - name: First-time Android SDK/NDK setup with live logs
+      - name: First-time Android SDK/NDK setup (real-time logs)
         run: |
-          python -u -m buildozer -v android debug 2>&1 | tee buildozer_setup.log || true
+          python -u -m buildozer android debug 2>&1 | tee buildozer_setup.log || true
 
-      - name: Build APK (debug) with live logs
+      - name: Build APK (debug) with real-time logs
         run: |
-          python -u -m buildozer -v android debug 2>&1 | tee buildozer_build.log
+          python -u -m buildozer android debug 2>&1 | tee buildozer_build.log
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
