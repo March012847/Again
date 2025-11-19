@@ -10,39 +10,58 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      PYTHONUNBUFFERED: 1  # Ensures real-time logs
+      PYTHONUNBUFFERED: 1  # Real-time logs
 
     steps:
     # 1️⃣ Checkout repository
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 2️⃣ Install system dependencies and Python packages
-    - name: Install dependencies
+    # 2️⃣ Install system dependencies
+    - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y git python3-pip python3-setuptools openjdk-8-jdk unzip zip wget curl
+
+    # 3️⃣ Install Python packages
+    - name: Install Python packages
+      run: |
         pip install --upgrade buildozer cython
 
-    # 3️⃣ Download Android ffmpeg binary
+    # 4️⃣ Download Android command line tools (SDK Manager)
+    - name: Download Android SDK Command Line Tools
+      run: |
+        mkdir -p $HOME/android-sdk/cmdline-tools
+        cd $HOME/android-sdk/cmdline-tools
+        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+        unzip cmdline-tools.zip
+        rm cmdline-tools.zip
+        mv cmdline-tools latest
+        export ANDROID_HOME=$HOME/android-sdk
+        export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+
+    # 5️⃣ Install required SDK packages
+    - name: Install SDK packages
+      run: |
+        export ANDROID_HOME=$HOME/android-sdk
+        export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+        yes | sdkmanager --licenses
+        sdkmanager "platform-tools" "platforms;android-33" "build-tools;36.1.0" "ndk;25.2.9519653"
+
+    # 6️⃣ Download Android ffmpeg binary
     - name: Download Android ffmpeg
       run: |
         mkdir -p libs/ffmpeg
-        # Prebuilt ffmpeg for Android; replace with proper ARM binaries if needed
         wget -O libs/ffmpeg/ffmpeg https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
         chmod +x libs/ffmpeg/ffmpeg
 
-    # 4️⃣ Accept Android SDK licenses
-    - name: Accept Android SDK licenses
-      run: |
-        yes | ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager --licenses
-
-    # 5️⃣ Build APK with Buildozer
+    # 7️⃣ Build APK with Buildozer
     - name: Build APK
       run: |
+        export ANDROIDSDK_ROOT=$HOME/android-sdk
         buildozer -v android debug
 
-    # 6️⃣ Upload APK artifact
+    # 8️⃣ Upload APK artifact
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
