@@ -22,22 +22,20 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y \
-            build-essential git zip unzip python3-pip python3-venv \
-            libffi-dev libssl-dev liblzma-dev zlib1g-dev openjdk-17-jdk
+            build-essential git zip unzip python3-pip \
+            libffi-dev libssl-dev liblzma-dev zlib1g-dev \
+            openjdk-17-jdk
 
-      - name: Create venv & install buildozer
+      - name: Install Buildozer and Cython system-wide
         run: |
-          python -m venv venv
-          venv/bin/pip install --upgrade pip setuptools Cython
-          venv/bin/pip install buildozer
+          pip install --upgrade pip setuptools
+          pip install Cython buildozer
 
-      - name: First-time Buildozer Android setup (downloads SDK/NDK)
-        run: |
-          venv/bin/buildozer android debug || true
+      - name: First-time Buildozer Android setup
+        run: buildozer android debug || true
 
       - name: Build APK
-        run: |
-          venv/bin/buildozer android debug
+        run: buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
